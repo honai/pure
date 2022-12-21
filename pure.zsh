@@ -160,6 +160,10 @@ prompt_pure_preprompt_render() {
 		preprompt_parts+=('%F{$prompt_pure_colors[git:stash]}${PURE_GIT_STASH_SYMBOL:-≡}%f')
 	fi
 
+	if [[ -n $prompt_pure_kube_context ]]; then
+		preprompt_parts+=('%F{$prompt_pure_colors[kubecontext]}🕸️${prompt_pure_kube_context}%f')
+	fi
+
 	# Execution time.
 	[[ -n $prompt_pure_cmd_exec_time ]] && preprompt_parts+=('%F{$prompt_pure_colors[execution_time]}${prompt_pure_cmd_exec_time}%f')
 
@@ -391,6 +395,10 @@ prompt_pure_async_git_stash() {
 	git rev-list --walk-reflogs --count refs/stash
 }
 
+prompt_pure_async_kube_context() {
+	kubectl config view --output jsonpath='{.current-context}'
+}
+
 # Try to lower the priority of the worker so that disk heavy operations
 # like `git status` has less impact on the system responsivity.
 prompt_pure_async_renice() {
@@ -485,6 +493,8 @@ prompt_pure_async_refresh() {
 	else
 		unset prompt_pure_git_stash
 	fi
+
+	async_job "prompt_pure" prompt_pure_async_kube_context
 }
 
 prompt_pure_check_git_arrows() {
@@ -621,6 +631,11 @@ prompt_pure_async_callback() {
 			local prev_stash=$prompt_pure_git_stash
 			typeset -g prompt_pure_git_stash=$output
 			[[ $prev_stash != $prompt_pure_git_stash ]] && do_render=1
+			;;
+		prompt_pure_async_kube_context)
+			local prev_context=$prompt_pure_kube_context
+			typeset -g prompt_pure_kube_context=$output
+			[[ $prev_context != $prompt_pure_kube_context ]] && do_render=1
 			;;
 	esac
 
@@ -823,6 +838,7 @@ prompt_pure_setup() {
 		git:branch:cached    red
 		git:action           yellow
 		git:dirty            218
+		kubecontext          242
 		host                 242
 		path                 blue
 		prompt:error         red
